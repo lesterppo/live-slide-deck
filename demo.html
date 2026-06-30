@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Audience Deck — Self-Contained Demo</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a1628;--bg2:#122a4f;--bg3:#1e293b;--bg4:#0d1f3c;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --accent:#60a5fa;--accent2:#818cf8;--success:#34d399;--warn:#fbbf24;--danger:#ef4444;
+  --border:rgba(148,163,184,.15);--radius:12px;
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,var(--bg),var(--bg2),var(--bg4));
+  color:var(--text);height:100vh;display:flex;overflow:hidden;
+}
+button,input,textarea,select{font-family:inherit}
+button{
+  padding:10px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;
+  cursor:pointer;transition:transform .12s,box-shadow .12s;min-height:36px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+}
+button:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,.3)}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+button.sec{background:rgba(148,163,184,.12);color:var(--text2)}
+button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+button.success{background:linear-gradient(135deg,var(--success),#10b981)}
+input,textarea{
+  width:100%;padding:8px 12px;background:rgba(15,23,42,.6);border:2px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:13px;transition:border-color .2s;
+}
+input:focus,textarea:focus{outline:none;border-color:var(--accent2)}
+label{display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+h3{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+/* Layout: 3 panels */
+.panel{overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel-admin{width:320px;flex-shrink:0;background:rgba(30,41,59,.95);border-right:1px solid var(--border)}
+.panel-display{flex:1;display:flex;align-items:center;justify-content:center;padding:30px;min-width:0}
+.panel-sim{width:300px;flex-shrink:0;background:rgba(30,41,59,.95);border-left:1px solid var(--border)}
+
+/* Display slide */
+.slide-card{
+  background:var(--bg3);border-radius:16px;padding:40px 48px;
+  max-width:700px;width:100%;border:1px solid var(--border);box-shadow:0 20px 50px rgba(0,0,0,.3);
+  animation:fadeIn .4s;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.slide-card h1{font-size:30px;font-weight:800;margin-bottom:6px;line-height:1.2}
+.slide-card h2{font-size:15px;color:var(--text2);font-weight:500;margin-bottom:24px}
+.slide-card .hero-text{font-size:42px;font-weight:900;line-height:1.15;margin:16px 0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2),#c084fc);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.slide-card .bullets{list-style:none;display:flex;flex-direction:column;gap:10px}
+.slide-card .bullets li{
+  font-size:18px;line-height:1.5;padding:12px 16px;background:rgba(15,23,42,.5);
+  border-radius:10px;border-left:4px solid var(--accent2);
+}
+.chart-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.chart-label{width:110px;text-align:right;font-size:14px;font-weight:600;color:var(--text2);flex-shrink:0}
+.chart-track{flex:1;height:24px;background:rgba(15,23,42,.6);border-radius:6px;overflow:hidden}
+.chart-fill{
+  height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width 1s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:flex-end;
+  padding-right:8px;font-size:11px;font-weight:700;min-width:28px;color:#fff;
+}
+.chart-val{width:40px;font-size:13px;font-weight:700;flex-shrink:0}
+.word-cloud{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:16px}
+.word-cloud span{padding:4px 12px;border-radius:16px}
+.insight-box{
+  margin-top:20px;padding:14px 18px;background:rgba(251,191,36,.08);
+  border-left:4px solid var(--warn);border-radius:8px;font-size:14px;line-height:1.5;
+}
+
+/* Generating */
+.gen-spinner{text-align:center;padding:40px}
+.gen-spinner .spin{
+  width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent2);
+  border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Simulator section */
+.api-section{background:rgba(15,23,42,.4);border-radius:8px;padding:10px 12px}
+.poll-opt{
+  display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:4px;
+  background:rgba(15,23,42,.5);border:2px solid var(--border);border-radius:8px;
+  color:var(--text);font-size:13px;cursor:pointer;transition:all .15s;
+}
+.poll-opt:hover{border-color:var(--accent2)}
+.poll-opt.sel{border-color:var(--accent2);background:rgba(129,140,248,.15)}
+.sim-results{font-size:11px;color:var(--text3)}
+.sim-results span{color:var(--text2);font-weight:600}
+.status-ok{color:var(--success);font-size:11px}
+.status-err{color:var(--danger);font-size:11px}
+
+/* Slide history */
+.hist-item{
+  padding:6px 10px;background:rgba(15,23,42,.3);border-radius:6px;font-size:11px;
+  display:flex;align-items:center;gap:8px;
+}
+.hist-item .lay{font-size:9px;padding:1px 5px;background:rgba(129,140,248,.15);border-radius:3px;color:var(--accent2)}
+</style>
+</head>
+<body>
+
+<!-- ===== ADMIN PANEL ===== -->
+<div class="panel panel-admin" id="adminPanel">
+  <h3>Admin Panel</h3>
+
+  <div>
+    <label>DeepSeek API Key</label>
+    <input type="password" id="apiKey" placeholder="sk-...">
+    <div style="font-size:10px;color:var(--text3);margin-top:2px">Stored in localStorage, never sent anywhere else</div>
+  </div>
+
+  <div>
+    <label>Topic</label>
+    <input type="text" id="topicInput" placeholder="e.g. The Future of AI">
+    <button onclick="setTopic()" style="margin-top:4px;width:100%">Set Topic</button>
+  </div>
+
+  <div>
+    <label>Prompt Type</label>
+    <div style="display:flex;gap:4px;margin-bottom:6px">
+      <button id="btPoll" onclick="setType('poll')">Poll</button>
+      <button id="btWord" class="sec" onclick="setType('wordcloud')">Words</button>
+      <button id="btRate" class="sec" onclick="setType('rating')">Rating</button>
+      <button id="btQuest" class="sec" onclick="setType('question')">Q&A</button>
+    </div>
+    <label>Question</label>
+    <input type="text" id="promptQ" placeholder="What should the audience answer?">
+    <div id="pollOptsArea">
+      <label>Options (one per line)</label>
+      <textarea id="pollOpts" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea>
+    </div>
+    <button onclick="pushPrompt()" style="margin-top:4px;width:100%">Push to Audience</button>
+  </div>
+
+  <div>
+    <button class="success" id="genBtn" onclick="generateSlide()" style="width:100%">Generate Next Slide</button>
+    <button class="danger" onclick="resetAll()" style="width:100%;margin-top:4px">Reset</button>
+  </div>
+
+  <div>
+    <h3>Slide History</h3>
+    <div id="historyList" style="display:flex;flex-direction:column;gap:4px">
+      <div style="color:var(--text3);font-size:11px;font-style:italic">No slides yet</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DISPLAY PANEL ===== -->
+<div class="panel panel-display" id="displayPanel">
+  <div id="slideArea">
+    <div class="slide-card">
+      <h1 id="slideTitle">Audience Deck</h1>
+      <h2 id="slideSubtitle">Set a topic and push a prompt to get started</h2>
+      <div id="slideBody"></div>
+      <div class="insight-box" id="slideInsight" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SIMULATOR PANEL (audience) ===== -->
+<div class="panel panel-sim" id="simPanel">
+  <h3>Audience Simulator</h3>
+  <div id="simStatus" style="font-size:11px;color:var(--text3)">No prompt active</div>
+  <div id="simInteraction" style="display:flex;flex-direction:column;gap:8px"></div>
+  <div class="sim-results" id="simResults">
+    <div>Submissions: <span id="simCount">0</span></div>
+  </div>
+
+  <div id="batchSim" style="margin-top:8px">
+    <label>Batch Submit (comma-separated)</label>
+    <input type="text" id="batchInput" placeholder="A, A, B, C, B">
+    <button onclick="batchSubmit()" style="width:100%;margin-top:4px">Batch Submit</button>
+  </div>
+
+  <div id="livePollResults" style="margin-top:8px"></div>
+</div>
+
+<script>
+// ======================== STATE ========================
+var STATE = loadState();
+
+function defaultState() {
+  return {
+    topic: '',
+    slideHistory: [],
+    currentSlide: null,
+    promptLive: null,   // {type, question, options}
+    submissions: [],     // [{response, timestamp}]
+    generating: false
+  };
+}
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem('audience-deck-state');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return defaultState();
+}
+
+function saveState() {
+  localStorage.setItem('audience-deck-state', JSON.stringify(STATE));
+}
+
+function loadApiKey() {
+  return localStorage.getItem('audience-deck-apikey') || '';
+}
+
+function saveApiKey(key) {
+  localStorage.setItem('audience-deck-apikey', key);
+}
+
+// ======================== DEEPSEEK API ========================
+function callDeepSeek(systemPrompt, userPrompt, callback) {
+  var apiKey = document.getElementById('apiKey').value.trim() || loadApiKey();
+  if (!apiKey) {
+    alert('Please enter your DeepSeek API key in the Admin panel');
+    callback({layout:'hero',title:'API Key Required',subtitle:'',
+      content:{hero_text:'Enter your DeepSeek API key in the Admin panel',
+        bullets:[],chartData:[],words:[],insight:'',next_prompt:''}});
+    return;
+  }
+  saveApiKey(apiKey);
+
+  fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey},
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [
+        {role: 'system', content: systemPrompt},
+        {role: 'user', content: userPrompt}
+      ],
+      response_format: {type: 'json_object'},
+      max_tokens: 1024,
+      temperature: 0.8
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    try {
+      var result = JSON.parse(data.choices[0].message.content);
+      callback(result);
+    } catch(e) {
+      callback({layout:'hero',title:'Parse Error',subtitle:'',
+        content:{hero_text:'Failed to parse DeepSeek response',
+          bullets:[],chartData:[],words:[],insight:'',next_prompt:''}});
+    }
+  })
+  .catch(function(e){
+    callback({layout:'hero',title:'API Error',subtitle:'',
+      content:{hero_text:e.message||'Network error',
+        bullets:[],chartData:[],words:[],insight:'',next_prompt:''}});
+  });
+}
+
+function buildPrompts() {
+  var topic = STATE.topic || 'General Discussion';
+  var pl = STATE.promptLive || {};
+  var subs = STATE.submissions || [];
+  var hist = STATE.slideHistory || [];
+
+  var histStr = '';
+  if (hist.length) {
+    var titles = hist.slice(-5).map(function(s){ return s.title; });
+    histStr = 'Previous slides: ' + titles.join(' → ');
+  }
+
+  var agg = '';
+  if (subs.length) {
+    var type = pl.type || 'question';
+    if (type === 'poll') {
+      var opts = pl.options || [];
+      var counts = {};
+      subs.forEach(function(s){ var r = s.response; counts[r] = (counts[r]||0) + 1; });
+      var total = subs.length;
+      agg = 'Poll results (' + total + ' votes): ';
+      agg += opts.map(function(o){ return o + ': ' + (counts[o]||0) + ' votes (' + Math.round((counts[o]||0)/total*100) + '%)'; }).join(', ');
+    } else if (type === 'wordcloud') {
+      var words = subs.map(function(s){ return s.response; }).filter(Boolean);
+      agg = 'Word cloud (' + words.length + '): ' + words.join(', ');
+    } else if (type === 'rating') {
+      var ratings = subs.map(function(s){ return parseFloat(s.response); }).filter(function(v){ return !isNaN(v); });
+      if (ratings.length) {
+        var sum = ratings.reduce(function(a,b){ return a+b; }, 0);
+        agg = 'Rating: avg ' + (sum/ratings.length).toFixed(1) + '/10 from ' + ratings.length + ' responses';
+      }
+    } else {
+      agg = 'Responses (' + subs.length + '): ' + subs.map(function(s){ return s.response; }).filter(Boolean).slice(0,10).join(' | ');
+    }
+  }
+
+  var system = 'You are the AI director of a live presentation on: ' + topic + '. ' +
+    'Take aggregated audience input and generate the next slide. ' +
+    'Respond ONLY with JSON: {"layout":"hero"|"split-text"|"chart-bar"|"word-cloud",' +
+    '"title":"Slide title","subtitle":"Optional",' +
+    '"content":{"hero_text":"","bullets":[],"chartData":[{"label":"A","value":40}],' +
+    '"words":[{"text":"word","weight":10}],"insight":"One insight","next_prompt":"Suggested prompt"}}. ' +
+    'Choose layout by input type: poll→chart-bar, wordcloud→word-cloud, question→split-text, empty→hero.';
+
+  var user = 'Topic: ' + topic + '\n' + histStr + '\nPrompt: ' + (pl.question||'None') + '\n' + (agg||'No input yet. Generate intro slide.') + '\n\nGenerate next slide.';
+
+  return [system, user];
+}
+
+// ======================== ADMIN ========================
+var promptType = 'poll';
+
+document.getElementById('apiKey').value = loadApiKey();
+
+function setType(t) {
+  promptType = t;
+  ['btPoll','btWord','btRate','btQuest'].forEach(function(id){
+    document.getElementById(id).className = (id === 'bt' + t.charAt(0).toUpperCase() + t.slice(1)) ? '' : 'sec';
+  });
+  document.getElementById('pollOptsArea').style.display = (t === 'poll') ? '' : 'none';
+}
+
+function setTopic() {
+  var t = document.getElementById('topicInput').value.trim();
+  if (!t) return;
+  STATE.topic = t;
+  saveState();
+  document.getElementById('slideTitle').textContent = t;
+  document.getElementById('slideSubtitle').textContent = 'Waiting for audience input...';
+  document.getElementById('slideBody').innerHTML = '';
+  document.getElementById('slideInsight').style.display = 'none';
+}
+
+function pushPrompt() {
+  var q = document.getElementById('promptQ').value.trim();
+  if (!q) return;
+  var body = {type: promptType, question: q, options: []};
+  if (promptType === 'poll') {
+    body.options = document.getElementById('pollOpts').value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+    if (body.options.length < 2) { alert('Need at least 2 poll options'); return; }
+  }
+  STATE.promptLive = body;
+  STATE.submissions = [];
+  saveState();
+  updateSimulator();
+  updateLiveResults();
+}
+
+function generateSlide() {
+  if (STATE.generating) return;
+  STATE.generating = true;
+  saveState();
+  document.getElementById('genBtn').disabled = true;
+  document.getElementById('genBtn').textContent = 'Generating...';
+  document.getElementById('slideArea').innerHTML = '<div class="gen-spinner"><div class="spin"></div><div style="color:var(--text2);font-size:14px">AI is synthesizing audience input...</div></div>';
+
+  var prompts = buildPrompts();
+  callDeepSeek(prompts[0], prompts[1], function(result) {
+    var slide = {
+      layout: result.layout || 'hero',
+      title: result.title || 'Untitled',
+      subtitle: result.subtitle || '',
+      content: result.content || {}
+    };
+    STATE.slideHistory.push(slide);
+    STATE.currentSlide = slide;
+    STATE.generating = false;
+    STATE.submissions = [];
+    STATE.promptLive = null;
+    saveState();
+
+    document.getElementById('genBtn').disabled = false;
+    document.getElementById('genBtn').textContent = 'Generate Next Slide';
+    renderSlide(slide);
+    updateHistory();
+    updateSimulator();
+    updateLiveResults();
+  });
+}
+
+function resetAll() {
+  if (!confirm('Reset everything?')) return;
+  STATE = defaultState();
+  saveState();
+  document.getElementById('topicInput').value = '';
+  document.getElementById('promptQ').value = '';
+  document.getElementById('pollOpts').value = '';
+  document.getElementById('slideTitle').textContent = 'Audience Deck';
+  document.getElementById('slideSubtitle').textContent = 'Set a topic and push a prompt to get started';
+  document.getElementById('slideBody').innerHTML = '';
+  document.getElementById('slideInsight').style.display = 'none';
+  document.getElementById('genBtn').disabled = false;
+  document.getElementById('genBtn').textContent = 'Generate Next Slide';
+  updateHistory();
+  updateSimulator();
+  updateLiveResults();
+}
+
+// ======================== DISPLAY ========================
+function renderSlide(slide) {
+  if (!slide) return;
+  document.getElementById('slideArea').innerHTML = '';
+  var card = document.createElement('div');
+  card.className = 'slide-card';
+
+  var h1 = document.createElement('h1');
+  h1.textContent = slide.title;
+  var h2 = document.createElement('h2');
+  h2.textContent = slide.subtitle || '';
+  var body = document.createElement('div');
+  body.id = 'slideBodyRender';
+  var insight = document.createElement('div');
+  insight.className = 'insight-box';
+
+  card.appendChild(h1);
+  card.appendChild(h2);
+  card.appendChild(body);
+  card.appendChild(insight);
+  document.getElementById('slideArea').appendChild(card);
+
+  var content = slide.content || {};
+  var layout = slide.layout || 'hero';
+
+  if (layout === 'hero') {
+    if (content.hero_text) {
+      var ht = document.createElement('div');
+      ht.className = 'hero-text';
+      ht.textContent = content.hero_text;
+      body.appendChild(ht);
+    }
+    if (content.bullets && content.bullets.length) {
+      var ul = document.createElement('ul');
+      ul.className = 'bullets';
+      content.bullets.forEach(function(b){
+        var li = document.createElement('li');
+        li.textContent = b;
+        ul.appendChild(li);
+      });
+      body.appendChild(ul);
+    }
+  } else if (layout === 'split-text') {
+    if (content.bullets && content.bullets.length) {
+      var ul = document.createElement('ul');
+      ul.className = 'bullets';
+      content.bullets.forEach(function(b){
+        var li = document.createElement('li');
+        li.textContent = b;
+        ul.appendChild(li);
+      });
+      body.appendChild(ul);
+    }
+  } else if (layout === 'chart-bar') {
+    var data = content.chartData || [];
+    if (data.length) {
+      var maxV = Math.max.apply(null, data.map(function(d){ return d.value; }));
+      data.forEach(function(d){
+        var pct = maxV > 0 ? Math.round(d.value/maxV*100) : 0;
+        var row = document.createElement('div');
+        row.className = 'chart-row';
+        var lab = document.createElement('div');
+        lab.className = 'chart-label';
+        lab.textContent = d.label;
+        var track = document.createElement('div');
+        track.className = 'chart-track';
+        var fill = document.createElement('div');
+        fill.className = 'chart-fill';
+        fill.style.width = '0%';
+        fill.textContent = d.value;
+        var val = document.createElement('div');
+        val.className = 'chart-val';
+        val.textContent = d.value;
+        row.appendChild(lab); row.appendChild(track); track.appendChild(fill); row.appendChild(val);
+        body.appendChild(row);
+        setTimeout(function(){ fill.style.width = pct + '%'; }, 50);
+      });
+    }
+  } else if (layout === 'word-cloud') {
+    var words = content.words || [];
+    if (words.length) {
+      var wc = document.createElement('div');
+      wc.className = 'word-cloud';
+      var maxW = Math.max.apply(null, words.map(function(w){ return w.weight; }));
+      words.forEach(function(w){
+        var span = document.createElement('span');
+        span.textContent = w.text;
+        span.style.fontSize = Math.max(12, Math.round(w.weight/Math.max(maxW,1)*40)) + 'px';
+        span.style.opacity = 0.4 + (w.weight/Math.max(maxW,1))*0.6;
+        span.style.color = 'var(--accent)';
+        wc.appendChild(span);
+      });
+      body.appendChild(wc);
+    }
+  }
+
+  if (content.insight) {
+    insight.innerHTML = '<strong>Insight:</strong> ' + content.insight.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    insight.style.display = '';
+  } else {
+    insight.style.display = 'none';
+  }
+}
+
+function updateHistory() {
+  var list = document.getElementById('historyList');
+  list.innerHTML = '';
+  if (!STATE.slideHistory.length) {
+    list.innerHTML = '<div style="color:var(--text3);font-size:11px;font-style:italic">No slides yet</div>';
+    return;
+  }
+  STATE.slideHistory.slice().reverse().forEach(function(s, i){
+    var item = document.createElement('div');
+    item.className = 'hist-item';
+    item.innerHTML = '<span style="color:var(--text3)">#' + (STATE.slideHistory.length - i) + '</span>' +
+      '<span class="lay">' + s.layout + '</span>' +
+      '<span style="flex:1;font-weight:600">' + s.title.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>';
+    list.appendChild(item);
+  });
+}
+
+// ======================== SIMULATOR ========================
+var simSelected = null;
+
+function updateSimulator() {
+  var pl = STATE.promptLive;
+  var status = document.getElementById('simStatus');
+  var intEl = document.getElementById('simInteraction');
+  var countEl = document.getElementById('simCount');
+  var batchEl = document.getElementById('batchSim');
+
+  countEl.textContent = STATE.submissions.length;
+
+  if (!pl) {
+    status.textContent = 'No prompt active — push one from Admin';
+    intEl.innerHTML = '';
+    batchEl.style.display = 'none';
+    return;
+  }
+
+  status.textContent = '[' + pl.type.toUpperCase() + '] ' + pl.question;
+  batchEl.style.display = '';
+
+  if (pl.type === 'poll') {
+    var html = '';
+    pl.options.forEach(function(opt){
+      html += '<div class="poll-opt" data-val="' + opt.replace(/"/g,'&quot;') + '">' + opt.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>';
+    });
+    html += '<button onclick="simSubmitPoll()" style="width:100%">Submit Selected</button>';
+    intEl.innerHTML = html;
+    // Wire click handlers
+    intEl.querySelectorAll('.poll-opt').forEach(function(el){
+      el.onclick = function(){
+        intEl.querySelectorAll('.poll-opt').forEach(function(e){ e.classList.remove('sel'); });
+        el.classList.add('sel');
+        simSelected = el.getAttribute('data-val');
+      };
+    });
+  } else if (pl.type === 'wordcloud') {
+    intEl.innerHTML = '<input type="text" id="simWordInput" placeholder="Enter a word...">' +
+      '<button onclick="simSubmitWord()" style="width:100%">Submit Word</button>';
+  } else if (pl.type === 'rating') {
+    intEl.innerHTML = '<input type="range" id="simRating" min="1" max="10" value="5" oninput="document.getElementById(\'simRatingVal\').textContent=this.value">' +
+      '<div style="text-align:center;font-size:24px;font-weight:800;color:var(--accent)" id="simRatingVal">5</div>' +
+      '<button onclick="simSubmitRating()" style="width:100%">Submit Rating</button>';
+  } else {
+    intEl.innerHTML = '<textarea id="simQInput" rows="3" placeholder="Type answer..."></textarea>' +
+      '<button onclick="simSubmitQuestion()" style="width:100%">Submit Answer</button>';
+  }
+}
+
+function simSubmit(response) {
+  if (!STATE.promptLive) return;
+  STATE.submissions.push({response: response, timestamp: new Date().toISOString()});
+  saveState();
+  updateSimulator();
+  updateLiveResults();
+}
+
+function simSubmitPoll() {
+  if (simSelected) simSubmit(simSelected);
+}
+
+function simSubmitWord() {
+  var el = document.getElementById('simWordInput');
+  if (el) { var v = el.value.trim(); if (v) { simSubmit(v); el.value = ''; } }
+}
+
+function simSubmitRating() {
+  var el = document.getElementById('simRating');
+  if (el) simSubmit(el.value);
+}
+
+function simSubmitQuestion() {
+  var el = document.getElementById('simQInput');
+  if (el) { var v = el.value.trim(); if (v) { simSubmit(v); el.value = ''; } }
+}
+
+function batchSubmit() {
+  var raw = document.getElementById('batchInput').value;
+  if (!raw || !STATE.promptLive) return;
+  var items = raw.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  items.forEach(function(item){ simSubmit(item); });
+  document.getElementById('batchInput').value = '';
+}
+
+function updateLiveResults() {
+  var el = document.getElementById('livePollResults');
+  var pl = STATE.promptLive;
+  var subs = STATE.submissions;
+  if (!pl || !subs.length) { el.innerHTML = ''; return; }
+
+  if (pl.type === 'poll') {
+    var opts = pl.options || [];
+    var counts = {};
+    subs.forEach(function(s){ var r = s.response; counts[r] = (counts[r]||0) + 1; });
+    var maxV = Math.max.apply(null, opts.map(function(o){ return counts[o]||0; }));
+    el.innerHTML = '<h3>Live Results (' + subs.length + ' votes)</h3>' +
+      opts.map(function(o){
+        var c = counts[o]||0;
+        var pct = maxV > 0 ? Math.round(c/maxV*100) : 0;
+        return '<div class="chart-row"><div class="chart-label">' + o.replace(/&/g,'&amp;') + '</div>' +
+          '<div class="chart-track"><div class="chart-fill" style="width:' + pct + '%">' + c + '</div></div>' +
+          '<div class="chart-val">' + c + '</div></div>';
+      }).join('');
+  } else if (pl.type === 'wordcloud') {
+    var words = {};
+    subs.forEach(function(s){
+      s.response.toLowerCase().split(/\s+/).forEach(function(w){
+        w = w.replace(/[^a-z0-9]/g, '');
+        if (w.length > 2) words[w] = (words[w]||0) + 1;
+      });
+    });
+    var sorted = Object.entries(words).sort(function(a,b){ return b[1] - a[1]; }).slice(0,20);
+    el.innerHTML = '<h3>Word Cloud (' + subs.length + ' entries)</h3>' +
+      sorted.map(function(e){ return '<span style="display:inline-block;padding:2px 8px;margin:2px;background:rgba(96,165,250,.15);border-radius:8px;font-size:' + (10+e[1]*3) + 'px">' + e[0] + '</span>'; }).join('');
+  } else if (pl.type === 'rating') {
+    var nums = subs.map(function(s){ return parseFloat(s.response); }).filter(function(v){ return !isNaN(v); });
+    if (nums.length) {
+      var avg = nums.reduce(function(a,b){ return a+b; }, 0) / nums.length;
+      el.innerHTML = '<h3>Rating (' + nums.length + ' votes)</h3>' +
+        '<div style="text-align:center;font-size:32px;font-weight:900;color:var(--accent)">' + avg.toFixed(1) + '</div>' +
+        '<div style="text-align:center;font-size:12px;color:var(--text3)">/10</div>';
+    }
+  }
+}
+
+// ======================== INIT ========================
+(function init() {
+  // Restore state
+  if (STATE.topic) {
+    document.getElementById('topicInput').value = STATE.topic;
+  }
+  if (STATE.currentSlide) {
+    renderSlide(STATE.currentSlide);
+  }
+  updateHistory();
+  updateSimulator();
+  updateLiveResults();
+})();
+</script>
+</body>
+</html>

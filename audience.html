@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Audience — Live Q&A</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a1628;--bg2:#122a4f;--bg3:#1e293b;--bg4:#0d1f3c;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --accent:#60a5fa;--accent2:#818cf8;--success:#34d399;--warn:#fbbf24;--danger:#ef4444;
+  --border:rgba(148,163,184,.15);
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,var(--bg),var(--bg2),var(--bg4));color:var(--text);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.card{
+  background:var(--bg3);backdrop-filter:blur(20px);border-radius:24px;
+  padding:32px 24px;max-width:440px;width:100%;text-align:center;
+  border:1px solid var(--border);box-shadow:0 25px 60px rgba(0,0,0,.4);
+}
+.logo{font-size:42px;margin-bottom:6px}
+h1{font-size:22px;font-weight:700;margin-bottom:4px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{font-size:13px;color:var(--text2);margin-bottom:8px}
+.prompt-q{font-size:16px;font-weight:600;margin:16px 0;color:var(--text)}
+.poll-opts{display:flex;flex-direction:column;gap:8px;margin:16px 0}
+.poll-opt{
+  padding:14px;background:rgba(15,23,42,.6);border:2px solid var(--border);
+  border-radius:12px;color:var(--text);font-size:15px;font-weight:500;
+  cursor:pointer;transition:all .2s;text-align:left;min-height:44px;
+}
+.poll-opt:hover{border-color:var(--accent2);background:rgba(129,140,248,.1)}
+.poll-opt.selected{border-color:var(--accent2);background:rgba(129,140,248,.15)}
+textarea{
+  width:100%;height:90px;background:rgba(15,23,42,.8);border:2px solid var(--border);
+  border-radius:14px;color:var(--text);padding:14px;font-size:15px;font-family:inherit;resize:none;
+  margin:12px 0;transition:border-color .2s;
+}
+textarea:focus{outline:none;border-color:var(--accent2);box-shadow:0 0 0 4px rgba(129,140,248,.1)}
+input[type=range]{width:100%;margin:12px 0}
+.rating-val{font-size:28px;font-weight:800;color:var(--accent)}
+button{
+  width:100%;padding:12px;border:none;border-radius:12px;font-size:15px;font-weight:600;
+  cursor:pointer;transition:transform .15s,box-shadow .15s;min-height:44px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+}
+button:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,.3)}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+button.sec{background:rgba(148,163,184,.15);color:var(--text2)}
+.toast{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-120px);
+  background:var(--bg3);color:var(--text);padding:10px 20px;border-radius:10px;
+  font-size:13px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.4);
+  z-index:100;transition:transform .4s cubic-bezier(.175,.885,.32,1.275);
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{border:1px solid var(--success)}
+.toast.error{border:1px solid var(--danger)}
+.waiting{color:var(--text3);font-style:italic;padding:40px 0;text-align:center}
+.dot{display:inline-block;animation:pulse 1.5s infinite}
+.dot:nth-child(2){animation-delay:.3s}
+.dot:nth-child(3){animation-delay:.6s}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* Batch panel for testing */
+.batch-panel{
+  margin-top:16px;padding:12px;background:rgba(15,23,42,.4);border-radius:12px;
+}
+.batch-panel label{display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.batch-panel input[type=text]{
+  width:100%;padding:8px 12px;background:rgba(15,23,42,.6);border:2px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:13px;margin-bottom:6px;
+}
+.batch-panel input:focus{outline:none;border-color:var(--accent2)}
+.live-results{margin-top:12px;text-align:left;font-size:12px}
+.live-row{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.live-label{width:90px;text-align:right;color:var(--text2);font-size:11px;flex-shrink:0}
+.live-track{flex:1;height:14px;background:rgba(15,23,42,.5);border-radius:4px;overflow:hidden}
+.live-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .8s ease;min-width:2px}
+.live-val{width:30px;font-size:10px;font-weight:700;text-align:left}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🎤</div>
+  <h1>Join the Conversation</h1>
+  <div class="sub" id="topicSub"></div>
+  <div id="interactionArea"><div class="waiting">Waiting for the speaker<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div></div>
+
+  <div class="batch-panel">
+    <label>Batch Submit (comma-separated for testing)</label>
+    <input type="text" id="batchInput" placeholder="A, A, B, C, A, B">
+    <button onclick="batchSubmit()" style="background:rgba(148,163,184,.15);color:#94a3b8">Batch Submit</button>
+  </div>
+
+  <div class="live-results" id="liveResults"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ======================== STATE (shared via localStorage) ========================
+function loadState() {
+  try { var raw = localStorage.getItem('audience-deck-state'); if (raw) return JSON.parse(raw); } catch(e) {}
+  return {topic:'',slideHistory:[],currentSlide:null,promptLive:null,submissions:[],generating:false};
+}
+
+function saveState(s) {
+  localStorage.setItem('audience-deck-state', JSON.stringify(s));
+}
+
+var STATE = loadState();
+var lastPromptKey = '';
+var selected = '';
+
+// Poll speaker state changes
+function pollSpeaker() {
+  var s = loadState();
+  // Detect new prompt
+  var newKey = s.promptLive ? s.promptLive.type + '|' + s.promptLive.question : '';
+  if (newKey !== lastPromptKey) {
+    lastPromptKey = newKey;
+    STATE.promptLive = s.promptLive;
+    STATE.submissions = s.submissions || [];
+    STATE.topic = s.topic;
+    document.getElementById('topicSub').textContent = s.topic || '';
+    if (s.promptLive) {
+      renderInteraction(s.promptLive);
+    } else {
+      document.getElementById('interactionArea').innerHTML = '<div class="waiting">Waiting for the speaker<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>';
+    }
+    updateLiveResults();
+  }
+  // Update submission count without re-rendering
+  if (JSON.stringify(s.submissions) !== JSON.stringify(STATE.submissions)) {
+    STATE.submissions = s.submissions;
+    updateLiveResults();
+  }
+}
+setInterval(pollSpeaker, 1000);
+pollSpeaker();
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + (type||'') + ' show';
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(function(){ t.classList.remove('show'); }, 3000);
+}
+
+function renderInteraction(pl) {
+  var area = document.getElementById('interactionArea');
+  var type = pl.type;
+  var question = pl.question;
+  var options = pl.options || [];
+  selected = '';
+
+  var html = '<div class="prompt-q">' + question.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>';
+
+  if (type === 'poll' && options.length) {
+    html += '<div class="poll-opts" id="pollOpts">';
+    options.forEach(function(opt){
+      html += '<div class="poll-opt" data-val="' + opt.replace(/"/g,'&quot;').replace(/&/g,'&amp;').replace(/</g,'&lt;') + '">' + opt.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>';
+    });
+    html += '</div>';
+    html += '<button id="submitBtn" disabled>Submit Vote</button>';
+  } else if (type === 'wordcloud') {
+    html += '<textarea id="wordInput" placeholder="Enter a word or phrase..." maxlength="30"></textarea>';
+    html += '<button id="submitBtn">Submit Word</button>';
+  } else if (type === 'rating') {
+    html += '<input type="range" id="ratingSlider" min="1" max="10" value="5">';
+    html += '<div class="rating-val" id="ratingVal">5</div>';
+    html += '<button id="submitBtn">Submit Rating</button>';
+  } else if (type === 'question') {
+    html += '<textarea id="qInput" placeholder="Your answer..." maxlength="300"></textarea>';
+    html += '<button id="submitBtn">Submit Answer</button>';
+  }
+
+  area.innerHTML = html;
+
+  // Wire poll options
+  var optsEl = document.getElementById('pollOpts');
+  if (optsEl) {
+    optsEl.onclick = function(e) {
+      var t = e.target;
+      while (t && t !== optsEl) {
+        if (t.classList.contains('poll-opt')) {
+          optsEl.querySelectorAll('.poll-opt').forEach(function(el){ el.classList.remove('selected'); });
+          t.classList.add('selected');
+          selected = t.getAttribute('data-val');
+          document.getElementById('submitBtn').disabled = false;
+          return;
+        }
+        t = t.parentElement;
+      }
+    };
+  }
+
+  // Wire slider
+  var slider = document.getElementById('ratingSlider');
+  if (slider) {
+    slider.oninput = function() { document.getElementById('ratingVal').textContent = slider.value; };
+  }
+
+  // Wire submit
+  var btn = document.getElementById('submitBtn');
+  if (btn) {
+    btn.onclick = function() {
+      if (type === 'poll' && selected) submit(selected);
+      else if (type === 'wordcloud') { var el = document.getElementById('wordInput'); if (el && el.value.trim()) { submit(el.value.trim()); el.value = ''; } }
+      else if (type === 'rating') { var el = document.getElementById('ratingSlider'); if (el) submit(el.value); }
+      else if (type === 'question') { var el = document.getElementById('qInput'); if (el && el.value.trim()) { submit(el.value.trim()); el.value = ''; } }
+    };
+  }
+}
+
+function submit(response) {
+  var s = loadState();
+  s.submissions = s.submissions || [];
+  s.submissions.push({response: response, timestamp: new Date().toISOString()});
+  saveState(s);
+  STATE.submissions = s.submissions;
+  showToast('Submitted!', 'success');
+  updateLiveResults();
+
+  // Reset poll selection
+  if (s.promptLive && s.promptLive.type === 'poll') {
+    selected = '';
+    var opts = document.querySelectorAll('.poll-opt');
+    opts.forEach(function(el){ el.classList.remove('selected'); });
+    var btn = document.getElementById('submitBtn');
+    if (btn) btn.disabled = true;
+  }
+}
+
+function batchSubmit() {
+  var raw = document.getElementById('batchInput').value;
+  if (!raw) return;
+  var items = raw.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  var s = loadState();
+  s.submissions = s.submissions || [];
+  items.forEach(function(item){ s.submissions.push({response: item, timestamp: new Date().toISOString()}); });
+  saveState(s);
+  STATE.submissions = s.submissions;
+  document.getElementById('batchInput').value = '';
+  showToast(items.length + ' responses submitted!', 'success');
+  updateLiveResults();
+}
+
+function updateLiveResults() {
+  var el = document.getElementById('liveResults');
+  var pl = STATE.promptLive;
+  var subs = STATE.submissions || [];
+  if (!pl || !subs.length) { el.innerHTML = subs.length ? '<div style="text-align:center;font-size:11px;color:#64748b">' + subs.length + ' submissions</div>' : ''; return; }
+
+  if (pl.type === 'poll') {
+    var opts = pl.options || [];
+    var counts = {}; opts.forEach(function(o){ counts[o] = 0; });
+    subs.forEach(function(s){ if (counts.hasOwnProperty(s.response)) counts[s.response]++; });
+    var maxV = Math.max.apply(null, opts.map(function(o){ return counts[o]; }));
+    var total = subs.length;
+    el.innerHTML = '<div style="font-size:11px;color:#64748b;margin-bottom:4px">' + total + ' votes</div>' +
+      opts.map(function(o){
+        var c = counts[o]; var pct = maxV > 0 ? Math.round(c/maxV*100) : 0;
+        return '<div class="live-row"><div class="live-label">' + o.replace(/&/g,'&amp;') + '</div>' +
+          '<div class="live-track"><div class="live-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="live-val">' + c + '</div></div>';
+      }).join('');
+  } else if (pl.type === 'wordcloud') {
+    var words = {};
+    subs.forEach(function(s){
+      s.response.toLowerCase().split(/\s+/).forEach(function(w){
+        w = w.replace(/[^a-z0-9]/g,''); if (w.length > 2) words[w] = (words[w]||0) + 1;
+      });
+    });
+    var sorted = Object.entries(words).sort(function(a,b){ return b[1]-a[1]; }).slice(0,20);
+    el.innerHTML = '<div style="font-size:11px;color:#64748b;margin-bottom:4px">' + subs.length + ' entries</div>' +
+      sorted.map(function(e){ return '<span style="display:inline-block;padding:2px 8px;margin:2px;background:rgba(96,165,250,.12);border-radius:8px;font-size:' + (10+e[1]*3) + 'px">' + e[0] + '</span>'; }).join('');
+  } else if (pl.type === 'rating') {
+    var nums = subs.map(function(s){ return parseFloat(s.response); }).filter(function(v){ return !isNaN(v); });
+    if (nums.length) {
+      var avg = nums.reduce(function(a,b){ return a+b; },0)/nums.length;
+      el.innerHTML = '<div style="text-align:center;font-size:28px;font-weight:900;color:#60a5fa">' + avg.toFixed(1) + '</div>' +
+        '<div style="text-align:center;font-size:11px;color:#64748b">/10 from ' + nums.length + ' ratings</div>';
+    }
+  } else {
+    el.innerHTML = '<div style="font-size:11px;color:#64748b">' + subs.length + ' responses</div>';
+  }
+}
+
+// Init
+document.getElementById('topicSub').textContent = STATE.topic || '';
+if (STATE.promptLive) {
+  lastPromptKey = STATE.promptLive.type + '|' + STATE.promptLive.question;
+  renderInteraction(STATE.promptLive);
+}
+updateLiveResults();
+
+// Theme sync with speaker
+(function loadTheme(){
+  var name = localStorage.getItem('audience-deck-theme');
+  if (!name) return;
+  var themes = {
+    default: {'--bg':'#0a1628','--bg2':'#122a4f','--bg3':'#1e293b','--bg4':'#0d1f3c','--text':'#e2e8f0','--text2':'#94a3b8','--text3':'#64748b','--accent':'#60a5fa','--accent2':'#818cf8','--border':'rgba(148,163,184,.15)'},
+    light:   {'--bg':'#f8fafc','--bg2':'#e2e8f0','--bg3':'#ffffff','--bg4':'#f1f5f9','--text':'#1e293b','--text2':'#475569','--text3':'#94a3b8','--accent':'#3b82f6','--accent2':'#6366f1','--border':'rgba(0,0,0,.1)'},
+    ocean:   {'--bg':'#0c4a6e','--bg2':'#075985','--bg3':'#0f3a57','--bg4':'#082f49','--text':'#e0f2fe','--text2':'#7dd3fc','--text3':'#38bdf8','--accent':'#22d3ee','--accent2':'#06b6d4','--border':'rgba(125,211,252,.15)'},
+    forest:  {'--bg':'#14532d','--bg2':'#166534','--bg3':'#143822','--bg4':'#052e16','--text':'#dcfce7','--text2':'#86efac','--text3':'#4ade80','--accent':'#34d399','--accent2':'#10b981','--border':'rgba(134,239,172,.15)'},
+    sunset:  {'--bg':'#7c2d12','--bg2':'#9a3412','--bg3':'#5c1f0a','--bg4':'#431407','--text':'#fff7ed','--text2':'#fdba74','--text3':'#fb923c','--accent':'#fbbf24','--accent2':'#f59e0b','--border':'rgba(253,186,116,.15)'}
+  };
+  var t = themes[name];
+  if (t) Object.keys(t).forEach(function(k){ document.documentElement.style.setProperty(k, t[k]); });
+})();
+
+// Keyboard: Enter to submit
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+    var btn = document.getElementById('submitBtn');
+    if (btn && !btn.disabled) btn.click();
+  }
+});
+</script>
+</body>
+</html>

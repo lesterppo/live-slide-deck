@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Speaker Panel — Audience Deck</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a1628;--bg2:#122a4f;--bg3:#1e293b;--bg4:#0d1f3c;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --accent:#60a5fa;--accent2:#818cf8;--success:#34d399;--warn:#fbbf24;--danger:#ef4444;
+  --border:rgba(148,163,184,.15);--radius:12px;
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,var(--bg),var(--bg2),var(--bg4));
+  color:var(--text);height:100vh;display:flex;overflow:hidden;
+}
+button,input,textarea,select{font-family:inherit}
+button{
+  padding:10px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;
+  cursor:pointer;transition:transform .12s,box-shadow .12s;min-height:36px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+}
+button:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,.3)}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+button.sec{background:rgba(148,163,184,.12);color:var(--text2)}
+button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+button.success{background:linear-gradient(135deg,var(--success),#10b981)}
+input,textarea{
+  width:100%;padding:8px 12px;background:rgba(15,23,42,.6);border:2px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:13px;transition:border-color .2s;
+}
+input:focus,textarea:focus{outline:none;border-color:var(--accent2)}
+label{display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+h3{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+.panel{overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel-admin{width:340px;flex-shrink:0;background:rgba(30,41,59,.95);border-right:1px solid var(--border)}
+.panel-display{flex:1;display:flex;align-items:center;justify-content:center;padding:30px;min-width:0}
+
+/* Display slide */
+.slide-card{
+  background:var(--bg3);border-radius:16px;padding:40px 48px;
+  max-width:750px;width:100%;border:1px solid var(--border);box-shadow:0 20px 50px rgba(0,0,0,.3);
+  animation:fadeIn .4s;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.slide-card h1{font-size:32px;font-weight:800;margin-bottom:6px;line-height:1.2}
+.slide-card h2{font-size:16px;color:var(--text2);font-weight:500;margin-bottom:24px}
+.slide-card .hero-text{font-size:44px;font-weight:900;line-height:1.15;margin:16px 0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2),#c084fc);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.slide-card .bullets{list-style:none;display:flex;flex-direction:column;gap:10px}
+.slide-card .bullets li{
+  font-size:18px;line-height:1.5;padding:12px 16px;background:rgba(15,23,42,.5);
+  border-radius:10px;border-left:4px solid var(--accent2);
+}
+.chart-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.chart-label{width:120px;text-align:right;font-size:14px;font-weight:600;color:var(--text2);flex-shrink:0}
+.chart-track{flex:1;height:24px;background:rgba(15,23,42,.6);border-radius:6px;overflow:hidden}
+.chart-fill{
+  height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width 1.2s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:flex-end;
+  padding-right:8px;font-size:11px;font-weight:700;min-width:28px;color:#fff;
+}
+.chart-val{width:40px;font-size:13px;font-weight:700;flex-shrink:0}
+.word-cloud{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:16px}
+.word-cloud span{padding:4px 12px;border-radius:16px}
+.insight-box{
+  margin-top:20px;padding:14px 18px;background:rgba(251,191,36,.08);
+  border-left:4px solid var(--warn);border-radius:8px;font-size:14px;line-height:1.5;
+}
+.next-prompt-box{
+  margin-top:12px;padding:10px 14px;background:rgba(129,140,248,.08);
+  border-left:4px solid var(--accent2);border-radius:8px;font-size:13px;color:var(--text2);
+}
+.next-prompt-box strong{color:var(--accent)}
+
+.gen-spinner{text-align:center;padding:40px}
+.gen-spinner .spin{
+  width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent2);
+  border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hist-item{
+  padding:6px 10px;background:rgba(15,23,42,.3);border-radius:6px;font-size:11px;
+  display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .15s;
+}
+.hist-item:hover{background:rgba(15,23,42,.6)}
+.hist-item .lay{font-size:9px;padding:1px 5px;background:rgba(129,140,248,.15);border-radius:3px;color:var(--accent2)}
+
+/* Sub count badge */
+.sub-badge{
+  display:inline-block;background:var(--accent2);color:#fff;font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:10px;margin-left:6px;animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Poll for setting next prompt from suggestion */
+.quick-push{background:rgba(15,23,42,.4);border-radius:8px;padding:10px 12px;margin-top:4px}
+
+/* Moderation queue */
+.mod-item{display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 6px;border-radius:4px}
+
+/* Export: hide admin during print */
+@media print {
+  .panel-admin, #errorRecovery, #quickPushArea, #moderationQueue { display: none !important; }
+  .panel-display { position: absolute; left: 0; top: 0; width: 100%; height: 100%; padding: 0; }
+  .slide-card { box-shadow: none; border: none; page-break-after: always; }
+  body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== ADMIN PANEL (left) ===== -->
+<div class="panel panel-admin" id="adminPanel">
+  <h3>Speaker Panel</h3>
+
+  <div>
+    <label>DeepSeek API Key</label>
+    <input type="password" id="apiKey" placeholder="sk-...">
+  </div>
+
+  <div>
+    <label>Topic</label>
+    <input type="text" id="topicInput" placeholder="e.g. The Future of AI in Healthcare">
+    <button onclick="setTopic()" style="margin-top:4px;width:100%">Set Topic</button>
+  </div>
+
+  <div>
+    <label>Push Prompt to Audience</label>
+    <div style="display:flex;gap:4px;margin-bottom:6px">
+      <button id="btPoll" onclick="setType('poll')">Poll</button>
+      <button id="btWord" class="sec" onclick="setType('wordcloud')">Words</button>
+      <button id="btRate" class="sec" onclick="setType('rating')">Rating</button>
+      <button id="btQuest" class="sec" onclick="setType('question')">Q&A</button>
+    </div>
+    <input type="text" id="promptQ" placeholder="What should the audience answer?">
+    <div id="pollOptsArea">
+      <textarea id="pollOpts" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea>
+    </div>
+    <button onclick="pushPrompt()" style="margin-top:4px;width:100%">Push to Audience</button>
+  </div>
+
+  <div id="quickPushArea" style="display:none"></div>
+
+  <!-- Content moderation queue (Pro suggestion) -->
+  <div id="moderationQueue" style="display:none">
+    <h3>Review Submissions <span id="modCount" style="color:var(--text2)"></span></h3>
+    <div id="modList" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+    <div style="display:flex;gap:4px;margin-top:6px">
+      <button class="success" onclick="approveAll()" style="flex:1;font-size:11px">Approve All</button>
+      <button class="sec" onclick="clearModeration()" style="flex:1;font-size:11px">Clear</button>
+    </div>
+  </div>
+
+  <div>
+    <button class="success" id="genBtn" onclick="generateSlide()" style="width:100%">
+      Generate Next Slide
+    </button>
+    <button class="danger" onclick="resetAll()" style="width:100%;margin-top:4px">Reset</button>
+    <button class="sec" onclick="exportDeck()" style="width:100%;margin-top:4px">Export Deck (PDF)</button>
+    <div id="errorRecovery" style="display:none;margin-top:4px"></div>
+  </div>
+
+  <!-- Presenter notes (Pro suggestion) -->
+  <div id="presenterNotes" style="display:none">
+    <h3>Presenter Notes</h3>
+    <div id="notesContent" style="font-size:11px;color:var(--text2);line-height:1.5"></div>
+    <button class="sec" onclick="generateNotes()" style="width:100%;margin-top:4px;font-size:11px">Generate Talking Points</button>
+  </div>
+
+  <!-- Theme picker (Pro suggestion) -->
+  <div>
+    <h3>Theme</h3>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      <button onclick="setTheme('default')" style="font-size:10px;padding:4px 8px;min-height:24px;background:linear-gradient(135deg,#0a1628,#122a4f)">Dark</button>
+      <button onclick="setTheme('light')" style="font-size:10px;padding:4px 8px;min-height:24px;background:linear-gradient(135deg,#f8fafc,#e2e8f0);color:#1e293b">Light</button>
+      <button onclick="setTheme('ocean')" style="font-size:10px;padding:4px 8px;min-height:24px;background:linear-gradient(135deg,#0c4a6e,#075985)">Ocean</button>
+      <button onclick="setTheme('forest')" style="font-size:10px;padding:4px 8px;min-height:24px;background:linear-gradient(135deg,#14532d,#166534)">Forest</button>
+      <button onclick="setTheme('sunset')" style="font-size:10px;padding:4px 8px;min-height:24px;background:linear-gradient(135deg,#7c2d12,#9a3412)">Sunset</button>
+    </div>
+  </div>
+
+  <div>
+    <h3>Slide History <span style="color:var(--text2);font-weight:400">(click to replay)</span></h3>
+    <div id="historyList" style="display:flex;flex-direction:column;gap:4px">
+      <div style="color:var(--text3);font-size:11px;font-style:italic">No slides yet</div>
+    </div>
+  </div>
+
+  <div style="font-size:10px;color:var(--text3);margin-top:auto">
+    Audience page: open <b>audience.html</b> in another tab
+    <button id="shareBtn" class="sec" style="width:100%;margin-top:4px;font-size:10px">📋 Share Audience Link</button>
+  </div>
+</div>
+
+<!-- ===== DISPLAY PANEL (right) ===== -->
+<div class="panel panel-display" id="displayPanel">
+  <div id="slideArea">
+    <div class="slide-card" style="text-align:center">
+      <div style="font-size:60px;margin-bottom:16px">🎤</div>
+      <h1>Audience Deck</h1>
+      <h2 style="margin-bottom:12px">Live audience-directed presentation</h2>
+      <div style="color:var(--text3);font-size:13px">Set a topic in the Speaker Panel to begin</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======================== STATE ========================
+var STATE = loadState();
+var API_KEY = loadApiKey();
+var promptType = 'poll';
+var simSelected = null;
+
+function defaultState() {
+  return {
+    topic: '',
+    slideHistory: [],
+    currentSlide: null,
+    promptLive: null,
+    submissions: [],
+    generating: false
+  };
+}
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem('audience-deck-state');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return defaultState();
+}
+
+function saveState() {
+  localStorage.setItem('audience-deck-state', JSON.stringify(STATE));
+}
+
+function loadApiKey() { return localStorage.getItem('audience-deck-apikey') || ''; }
+function saveApiKey(k) { localStorage.setItem('audience-deck-apikey', k); }
+
+// Poll for state changes (from audience tab)
+function pollState() {
+  var s = loadState();
+  if (JSON.stringify(s.submissions) !== JSON.stringify(STATE.submissions)) {
+    STATE.submissions = s.submissions;
+    updateSubCount();
+  }
+  if (JSON.stringify(s.promptLive) !== JSON.stringify(STATE.promptLive)) {
+    STATE.promptLive = s.promptLive;
+  }
+  if (JSON.stringify(s.currentSlide) !== JSON.stringify(STATE.currentSlide)) {
+    STATE.currentSlide = s.currentSlide;
+    STATE.slideHistory = s.slideHistory;
+    if (STATE.currentSlide) renderSlide(STATE.currentSlide);
+    updateHistory();
+  }
+}
+setInterval(pollState, 1500);
+
+// ======================== DEEPSEEK API ========================
+function callDeepSeek(systemPrompt, userPrompt, callback) {
+  var key = API_KEY || loadApiKey();
+  if (!key) {
+    alert('Enter your DeepSeek API key');
+    callback({layout:'hero',title:'API Key Required',subtitle:'',
+      content:{hero_text:'Enter your DeepSeek API key above',bullets:[],chartData:[],words:[],insight:'',next_prompt:''}});
+    return;
+  }
+  saveApiKey(key); API_KEY = key;
+
+  fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key},
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [
+        {role: 'system', content: systemPrompt},
+        {role: 'user', content: userPrompt}
+      ],
+      response_format: {type: 'json_object'},
+      max_tokens: 1024,
+      temperature: 0.8
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    try {
+      callback(JSON.parse(data.choices[0].message.content));
+    } catch(e) {
+      showErrorRecovery('Malformed JSON from DeepSeek');
+    }
+  })
+  .catch(function(e){
+    showErrorRecovery(e.message || 'Network error');
+  });
+}
+
+// Deterministic layout routing — Pro review suggestion
+function layoutDirective(type) {
+  if (type === 'poll') return 'You MUST use layout=chart-bar.';
+  if (type === 'wordcloud') return 'You MUST use layout=word-cloud.';
+  if (type === 'rating') return 'You MUST use layout=chart-bar.';
+  if (type === 'question') return 'You MUST use layout=split-text. Summarize responses as thematic bullets.';
+  return 'You MUST use layout=hero.'; // intro/empty
+}
+
+// ======================== ADMIN ========================
+document.getElementById('apiKey').value = loadApiKey();
+API_KEY = loadApiKey();
+
+function setType(t) {
+  promptType = t;
+  ['btPoll','btWord','btRate','btQuest'].forEach(function(id){
+    var match = id === 'bt' + t.charAt(0).toUpperCase() + t.slice(1);
+    document.getElementById(id).className = match ? '' : 'sec';
+  });
+  document.getElementById('pollOptsArea').style.display = (t === 'poll') ? '' : 'none';
+}
+
+function setTopic() {
+  var t = document.getElementById('topicInput').value.trim();
+  if (!t) return;
+  STATE.topic = t;
+  saveState();
+  document.getElementById('slideArea').innerHTML =
+    '<div class="slide-card"><h1>' + t.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</h1>' +
+    '<h2>Push a prompt to the audience to begin</h2></div>';
+}
+
+function pushPrompt() {
+  var q = document.getElementById('promptQ').value.trim();
+  if (!q) return;
+  var body = {type: promptType, question: q, options: []};
+  if (promptType === 'poll') {
+    body.options = document.getElementById('pollOpts').value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+    if (body.options.length < 2) { alert('Need at least 2 poll options'); return; }
+  }
+  STATE.promptLive = body;
+  STATE.submissions = [];
+  saveState();
+  document.getElementById('quickPushArea').style.display = 'none';
+  updateSubCount();
+}
+
+function quickPush(text) {
+  if (!text) return;
+  document.getElementById('promptQ').value = text;
+  // Default to question type for suggested prompts
+  setType('question');
+  pushPrompt();
+}
+
+function generateSlide() {
+  if (STATE.generating) return;
+  STATE.generating = true;
+  saveState();
+  var btn = document.getElementById('genBtn');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  document.getElementById('slideArea').innerHTML =
+    '<div class="gen-spinner"><div class="spin"></div><div style="color:var(--text2);font-size:14px">AI is synthesizing audience input...</div></div>';
+
+  var prompts = buildPrompts();
+  callDeepSeek(prompts[0], prompts[1], function(result) {
+    var slide = {
+      layout: result.layout || 'hero',
+      title: result.title || 'Untitled',
+      subtitle: result.subtitle || '',
+      content: result.content || {}
+    };
+    STATE.slideHistory.push(slide);
+    STATE.currentSlide = slide;
+    STATE.generating = false;
+    STATE.submissions = [];
+    STATE.promptLive = null;
+    saveState();
+
+    btn.disabled = false; btn.textContent = 'Generate Next Slide';
+    renderSlide(slide);
+    updateHistory();
+    updateSubCount();
+
+    // Show suggested next prompt
+    var nextP = slide.content.next_prompt || '';
+    var qp = document.getElementById('quickPushArea');
+    if (nextP) {
+      qp.style.display = '';
+      qp.innerHTML = '<div class="quick-push"><label>Suggested Next Prompt</label>' +
+        '<div style="font-size:13px;color:var(--text2);margin-bottom:6px">' + nextP.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>' +
+        '<button onclick="quickPush(\'' + nextP.replace(/'/g,'\\x27').replace(/"/g,'&quot;') + '\')" style="width:100%">Use This Prompt</button></div>';
+    } else {
+      qp.style.display = 'none';
+    }
+  });
+}
+
+function resetAll() {
+  if (!confirm('Reset everything?')) return;
+  STATE = defaultState();
+  saveState();
+  document.getElementById('topicInput').value = '';
+  document.getElementById('promptQ').value = '';
+  document.getElementById('pollOpts').value = '';
+  document.getElementById('quickPushArea').style.display = 'none';
+  document.getElementById('slideArea').innerHTML =
+    '<div class="slide-card" style="text-align:center"><div style="font-size:60px;margin-bottom:16px">🎤</div>' +
+    '<h1>Audience Deck</h1><h2 style="margin-bottom:12px">Live audience-directed presentation</h2>' +
+    '<div style="color:var(--text3);font-size:13px">Set a topic in the Speaker Panel to begin</div></div>';
+  updateHistory();
+  updateSubCount();
+}
+
+// ======================== DISPLAY ========================
+function renderSlide(slide) {
+  if (!slide) return;
+  var area = document.getElementById('slideArea');
+  area.innerHTML = '';
+  var card = document.createElement('div');
+  card.className = 'slide-card';
+
+  var h1 = document.createElement('h1');
+  h1.textContent = slide.title;
+  var h2 = document.createElement('h2');
+  h2.textContent = slide.subtitle || '';
+  var body = document.createElement('div');
+  var insight = document.createElement('div');
+  insight.className = 'insight-box';
+  var nextP = document.createElement('div');
+  nextP.className = 'next-prompt-box';
+
+  card.appendChild(h1); card.appendChild(h2); card.appendChild(body);
+  card.appendChild(insight); card.appendChild(nextP);
+  area.appendChild(card);
+
+  var c = slide.content || {};
+  var layout = slide.layout || 'hero';
+
+  if (layout === 'hero') {
+    if (c.hero_text) { var ht = document.createElement('div'); ht.className = 'hero-text'; ht.textContent = c.hero_text; body.appendChild(ht); }
+    if (c.bullets && c.bullets.length) { addBullets(body, c.bullets); }
+  } else if (layout === 'split-text') {
+    if (c.bullets && c.bullets.length) { addBullets(body, c.bullets); }
+  } else if (layout === 'chart-bar') {
+    addChart(body, c.chartData || []);
+  } else if (layout === 'word-cloud') {
+    addWordCloud(body, c.words || []);
+  }
+
+  if (c.insight) {
+    insight.innerHTML = '<strong>💡 Insight:</strong> ' + c.insight.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    insight.style.display = '';
+  } else { insight.style.display = 'none'; }
+
+  if (c.next_prompt) {
+    // Strip parenthetical examples: "What excites you? (e.g., diagnosis, surgery)" → "What excites you?"
+    var cleanNext = c.next_prompt.replace(/\s*\([^)]*\)\s*/g, '').replace(/\s*e\.g\..*/gi, '').trim();
+    nextP.innerHTML = '<strong>Next:</strong> ' + cleanNext.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    nextP.style.display = '';
+  } else { nextP.style.display = 'none'; }
+}
+
+function addBullets(parent, items) {
+  var ul = document.createElement('ul'); ul.className = 'bullets';
+  items.forEach(function(b){ var li = document.createElement('li'); li.textContent = b; ul.appendChild(li); });
+  parent.appendChild(ul);
+}
+
+function addChart(parent, data) {
+  if (!data.length) return;
+  var total = data.reduce(function(sum, d){ return sum + d.value; }, 0);
+  var maxV = Math.max.apply(null, data.map(function(d){ return d.value; }));
+  data.forEach(function(d){
+    var pct = maxV > 0 ? Math.round(d.value/maxV*100) : 0;
+    var realPct = total > 0 ? Math.round(d.value/total*100) : 0;
+    var row = document.createElement('div'); row.className = 'chart-row';
+    var lab = document.createElement('div'); lab.className = 'chart-label'; lab.textContent = d.label;
+    var track = document.createElement('div'); track.className = 'chart-track';
+    var fill = document.createElement('div'); fill.className = 'chart-fill'; fill.style.width = '0%'; fill.textContent = d.value;
+    var val = document.createElement('div'); val.className = 'chart-val'; val.textContent = realPct + '%';
+    row.appendChild(lab); row.appendChild(track); track.appendChild(fill); row.appendChild(val);
+    parent.appendChild(row);
+    setTimeout(function(){ fill.style.width = pct + '%'; }, 50);
+  });
+}
+
+function addWordCloud(parent, words) {
+  if (!words.length) return;
+  var wc = document.createElement('div'); wc.className = 'word-cloud';
+  var maxW = Math.max.apply(null, words.map(function(w){ return w.weight; }));
+  // Log scale: log(weight+1)/log(maxW+1) for smoother distribution
+  var logMax = Math.log(maxW + 1);
+  words.forEach(function(w){
+    var span = document.createElement('span'); span.textContent = w.text;
+    var scale = logMax > 0 ? Math.log(w.weight + 1) / logMax : 0.3;
+    var size = Math.round(14 + scale * 34); // 14px min, 48px max
+    span.style.fontSize = size + 'px';
+    span.style.opacity = (0.4 + scale * 0.6).toFixed(2);
+    span.style.color = 'var(--accent)';
+    wc.appendChild(span);
+  });
+  parent.appendChild(wc);
+}
+
+function updateHistory() {
+  var list = document.getElementById('historyList');
+  list.innerHTML = '';
+  if (!STATE.slideHistory.length) {
+    list.innerHTML = '<div style="color:var(--text3);font-size:11px;font-style:italic">No slides yet</div>';
+    return;
+  }
+  STATE.slideHistory.slice().reverse().forEach(function(s, i){
+    var idx = STATE.slideHistory.length - i;
+    var item = document.createElement('div');
+    item.className = 'hist-item';
+    item.title = 'Click to replay this slide';
+    item.innerHTML = '<span style="color:var(--text3)">#' + idx + '</span>' +
+      '<span class="lay">' + s.layout + '</span>' +
+      '<span style="flex:1;font-weight:600">' + s.title.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>';
+    item.onclick = (function(slide){ return function(){ renderSlide(slide); }; })(s);
+    list.appendChild(item);
+  });
+}
+
+function updateSubCount() {
+  var badge = document.getElementById('genBtn');
+  var n = STATE.submissions.length;
+  if (n > 0 && badge.textContent.indexOf('(') === -1) {
+    badge.innerHTML = 'Generate Next Slide <span class="sub-badge">' + n + '</span>';
+  } else if (n === 0) {
+    badge.textContent = 'Generate Next Slide';
+  } else {
+    badge.innerHTML = 'Generate Next Slide <span class="sub-badge">' + n + '</span>';
+  }
+  // Show moderation queue when submissions exist
+  updateModeration();
+}
+
+// ======================== MODERATION (Pro suggestion) ========================
+var REDACTED = {}; // {index: true} for redacted submissions
+
+function updateModeration() {
+  var q = document.getElementById('moderationQueue');
+  var list = document.getElementById('modList');
+  var subs = STATE.submissions || [];
+  if (!subs.length) { q.style.display = 'none'; return; }
+  q.style.display = '';
+
+  var activeSubs = subs.filter(function(s, i){ return !REDACTED[i]; });
+  document.getElementById('modCount').textContent = activeSubs.length + ' approved / ' + subs.length + ' total';
+
+  list.innerHTML = subs.slice(-15).map(function(s, i){
+    var realIdx = subs.length - 15 + i;
+    if (realIdx < 0) realIdx = subs.length - subs.slice(-15).length + i;
+    var redacted = REDACTED[realIdx];
+    var text = (s.response || '').substring(0, 60);
+    return '<div style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 6px;background:' +
+      (redacted ? 'rgba(239,68,68,.12)' : 'rgba(15,23,42,.3)') + ';border-radius:4px">' +
+      '<span style="flex:1;color:' + (redacted ? 'var(--danger)' : 'var(--text2)') + ';text-decoration:' + (redacted ? 'line-through' : 'none') + '">' +
+      text.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>' +
+      '<button onclick=\"toggleRedact(' + realIdx + ')\" style=\"font-size:10px;padding:2px 6px;min-height:20px;' +
+      (redacted ? 'background:var(--success)' : 'background:var(--danger)') + '\">' +
+      (redacted ? 'Restore' : 'Redact') + '</button></div>';
+  }).join('');
+}
+
+function toggleRedact(idx) {
+  REDACTED[idx] = !REDACTED[idx];
+  updateModeration();
+}
+
+function approveAll() {
+  REDACTED = {};
+  updateModeration();
+}
+
+function clearModeration() {
+  REDACTED = {};
+  STATE.submissions = [];
+  saveState();
+  updateModeration();
+  updateSubCount();
+}
+
+// Override generateSlide to exclude redacted submissions
+var _originalGenerate = generateSlide;
+generateSlide = function() {
+  // Filter out redacted submissions before generating
+  var subs = STATE.submissions || [];
+  STATE._savedSubmissions = subs.slice(); // backup
+  STATE.submissions = subs.filter(function(s, i){ return !REDACTED[i]; });
+  saveState();
+  _originalGenerate();
+};
+
+// ======================== EXPORT (Pro suggestion) ========================
+function exportDeck() {
+  // Show all slides as print cards
+  var area = document.getElementById('slideArea');
+  var original = area.innerHTML;
+  var html = '';
+  STATE.slideHistory.forEach(function(slide){
+    // Render each slide into a simple card
+    html += '<div class="slide-card" style="margin-bottom:20px">';
+    html += '<h1>' + (slide.title||'').replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</h1>';
+    if (slide.subtitle) html += '<h2>' + slide.subtitle.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</h2>';
+    var c = slide.content || {};
+    if (c.insight) html += '<div class="insight-box" style="display:block"><strong>Insight:</strong> ' + c.insight.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>';
+    if (c.bullets && c.bullets.length) html += '<ul class="bullets">' + c.bullets.map(function(b){ return '<li>' + b.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</li>'; }).join('') + '</ul>';
+    html += '</div>';
+  });
+  area.innerHTML = html || '<div class="slide-card"><h1>No slides yet</h1></div>';
+  setTimeout(function(){ window.print(); area.innerHTML = original; }, 200);
+}
+
+// ======================== ERROR RECOVERY (Pro suggestion) ========================
+function showErrorRecovery(errorMsg) {
+  var el = document.getElementById('errorRecovery');
+  el.style.display = '';
+  el.innerHTML = '<div style="background:rgba(239,68,68,.1);border:1px solid var(--danger);border-radius:8px;padding:8px 10px;font-size:11px">' +
+    '<div style="color:var(--danger);margin-bottom:4px">Generation failed: ' + (errorMsg||'Unknown error') + '</div>' +
+    '<div style="display:flex;gap:4px">' +
+    '<button onclick="retryGenerate()" style="flex:1;font-size:11px;background:var(--warn);color:#000">Retry</button>' +
+    '<button onclick="manualSlide()" style="flex:1;font-size:11px" class="sec">Manual Slide</button>' +
+    '<button onclick="document.getElementById(\"errorRecovery\").style.display=\"none\"" style="flex:1;font-size:11px" class="sec">Dismiss</button>' +
+    '</div></div>';
+}
+
+function retryGenerate() {
+  document.getElementById('errorRecovery').style.display = 'none';
+  // Restore submissions if they were filtered
+  if (STATE._savedSubmissions) {
+    STATE.submissions = STATE._savedSubmissions;
+    delete STATE._savedSubmissions;
+    saveState();
+  }
+  STATE.generating = false;
+  _originalGenerate();
+}
+
+function manualSlide() {
+  document.getElementById('errorRecovery').style.display = 'none';
+  var title = prompt('Slide title:', 'Manual Slide');
+  var bullets = prompt('Bullet points (semicolon-separated):', 'Point 1; Point 2; Point 3');
+  if (!title) return;
+  var slide = {
+    layout: 'split-text',
+    title: title,
+    subtitle: 'Manual fallback slide',
+    content: {
+      bullets: (bullets||'Manual entry').split(';').map(function(s){ return s.trim(); }).filter(Boolean),
+      insight: 'Manually entered slide',
+      next_prompt: ''
+    }
+  };
+  STATE.slideHistory.push(slide);
+  STATE.currentSlide = slide;
+  STATE.generating = false;
+  STATE.submissions = [];
+  STATE.promptLive = null;
+  saveState();
+  renderSlide(slide);
+  updateHistory();
+  updateSubCount();
+  document.getElementById('genBtn').disabled = false;
+  document.getElementById('genBtn').textContent = 'Generate Next Slide';
+}
+
+// ======================== PRESENTER NOTES (Pro suggestion) ========================
+function generateNotes() {
+  var el = document.getElementById('notesContent');
+  var subs = STATE.submissions || [];
+  var slide = STATE.currentSlide;
+  var pl = STATE.promptLive;
+
+  var html = '';
+  if (slide) {
+    html += '<div style="margin-bottom:8px"><strong>Current slide:</strong> ' + slide.title + '</div>';
+    if (slide.content && slide.content.insight) {
+      html += '<div style="margin-bottom:8px;color:var(--warn)">💡 ' + slide.content.insight + '</div>';
+    }
+  }
+  if (pl) {
+    html += '<div style="margin-bottom:4px"><strong>Active prompt:</strong> [' + pl.type + '] ' + pl.question + '</div>';
+  }
+  html += '<div style="margin-bottom:4px"><strong>Submissions:</strong> ' + subs.length + '</div>';
+  if (subs.length) {
+    html += '<div style="max-height:120px;overflow-y:auto;background:rgba(15,23,42,.3);border-radius:6px;padding:6px">';
+    subs.slice(-10).forEach(function(s){
+      html += '<div style="padding:2px 0;border-bottom:1px solid var(--border)">' + (s.response||'').substring(0,80).replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>';
+    });
+    html += '</div>';
+  }
+  // Generate quick talking points from current data
+  var talkingPoints = [];
+  if (slide && slide.content && slide.content.bullets) {
+    talkingPoints = slide.content.bullets.map(function(b,i){ return (i+1) + '. ' + b; });
+  }
+  if (pl && pl.type === 'poll' && subs.length) {
+    var counts = {}; subs.forEach(function(s){ counts[s.response] = (counts[s.response]||0) + 1; });
+    talkingPoints.push('Poll: ' + JSON.stringify(counts));
+  }
+  if (talkingPoints.length) {
+    html += '<div style="margin-top:8px"><strong>Talking points:</strong></div>';
+    talkingPoints.forEach(function(tp){ html += '<div style="padding:1px 0">' + tp.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>'; });
+  }
+  el.innerHTML = html || 'No data yet. Generate a slide first.';
+  document.getElementById('presenterNotes').style.display = '';
+}
+
+// ======================== THEME ENGINE (Pro suggestion) ========================
+var THEMES = {
+  default: {'--bg':'#0a1628','--bg2':'#122a4f','--bg3':'#1e293b','--bg4':'#0d1f3c','--text':'#e2e8f0','--text2':'#94a3b8','--text3':'#64748b','--accent':'#60a5fa','--accent2':'#818cf8','--border':'rgba(148,163,184,.15)'},
+  light:   {'--bg':'#f8fafc','--bg2':'#e2e8f0','--bg3':'#ffffff','--bg4':'#f1f5f9','--text':'#1e293b','--text2':'#475569','--text3':'#94a3b8','--accent':'#3b82f6','--accent2':'#6366f1','--border':'rgba(0,0,0,.1)'},
+  ocean:   {'--bg':'#0c4a6e','--bg2':'#075985','--bg3':'#0f3a57','--bg4':'#082f49','--text':'#e0f2fe','--text2':'#7dd3fc','--text3':'#38bdf8','--accent':'#22d3ee','--accent2':'#06b6d4','--border':'rgba(125,211,252,.15)'},
+  forest:  {'--bg':'#14532d','--bg2':'#166534','--bg3':'#143822','--bg4':'#052e16','--text':'#dcfce7','--text2':'#86efac','--text3':'#4ade80','--accent':'#34d399','--accent2':'#10b981','--border':'rgba(134,239,172,.15)'},
+  sunset:  {'--bg':'#7c2d12','--bg2':'#9a3412','--bg3':'#5c1f0a','--bg4':'#431407','--text':'#fff7ed','--text2':'#fdba74','--text3':'#fb923c','--accent':'#fbbf24','--accent2':'#f59e0b','--border':'rgba(253,186,116,.15)'}
+};
+
+function setTheme(name) {
+  var t = THEMES[name] || THEMES.default;
+  Object.keys(t).forEach(function(k){ document.documentElement.style.setProperty(k, t[k]); });
+  localStorage.setItem('audience-deck-theme', name);
+}
+// Restore saved theme
+var savedTheme = localStorage.getItem('audience-deck-theme');
+if (savedTheme) setTheme(savedTheme);
+
+// ======================== CONTEXT TRUNCATION (Pro suggestion) ========================
+function buildPrompts() {
+  var topic = STATE.topic || 'General Discussion';
+  var pl = STATE.promptLive || {};
+  var subs = STATE.submissions || [];
+  var hist = STATE.slideHistory || [];
+
+  // Smart context truncation: for 4+ slides, summarize early ones
+  var histStr = '';
+  if (hist.length) {
+    var SUMMARIZE_AFTER = 3; // full detail for last 3, summarize rest
+    if (hist.length > SUMMARIZE_AFTER) {
+      var summarySlides = hist.slice(0, hist.length - SUMMARIZE_AFTER);
+      histStr = 'EARLIER SLIDES (summarized):\n';
+      summarySlides.forEach(function(s, i){
+        histStr += '- Slide ' + (i+1) + ' (' + s.layout + '): ' + s.title;
+        if (s.content && s.content.insight) histStr += ' — ' + s.content.insight;
+        histStr += '\n';
+      });
+      histStr += '\nRECENT SLIDES (full content):\n';
+      hist = hist.slice(-SUMMARIZE_AFTER);
+    } else {
+      histStr = 'PREVIOUS SLIDES (full content):\n';
+    }
+
+    hist.forEach(function(s, i) {
+      var idx = (hist.length > SUMMARIZE_AFTER ? hist.length - SUMMARIZE_AFTER + i + 1 : i + 1);
+      if (hist.length > SUMMARIZE_AFTER) idx = hist.slice(0, hist.length - SUMMARIZE_AFTER).length + i + 1;
+      histStr += '\n--- Slide ' + (hist.length > SUMMARIZE_AFTER ? '' : idx) + ' (' + s.layout + ') ---\n';
+      histStr += 'Title: ' + s.title + '\n';
+      if (s.subtitle) histStr += 'Subtitle: ' + s.subtitle + '\n';
+      var c = s.content || {};
+      if (c.hero_text) histStr += 'Hero: ' + c.hero_text + '\n';
+      if (c.bullets && c.bullets.length) histStr += 'Bullets:\n  - ' + c.bullets.join('\n  - ') + '\n';
+      if (c.chartData && c.chartData.length) {
+        histStr += 'Chart: ' + c.chartData.map(function(d){ return d.label + '=' + d.value; }).join(', ') + '\n';
+      }
+      if (c.words && c.words.length) {
+        histStr += 'Words: ' + c.words.map(function(w){ return w.text + '(' + w.weight + ')'; }).join(', ') + '\n';
+      }
+      if (c.insight) histStr += 'Insight: ' + c.insight + '\n';
+    });
+  }
+
+  // Aggregate submissions
+  var agg = '';
+  if (subs.length) {
+    var type = pl.type || 'question';
+    if (type === 'poll') {
+      var opts = pl.options || [];
+      var counts = {};
+      subs.forEach(function(s){ var r = s.response; counts[r] = (counts[r]||0) + 1; });
+      var total = subs.length;
+      agg = 'Poll results (' + total + ' votes): ';
+      agg += opts.map(function(o){ return o + ': ' + (counts[o]||0) + ' (' + Math.round((counts[o]||0)/total*100) + '%)'; }).join(', ');
+    } else if (type === 'wordcloud') {
+      var words = subs.map(function(s){ return s.response; }).filter(Boolean);
+      agg = 'Word cloud (' + words.length + '): ' + words.join(', ');
+    } else if (type === 'rating') {
+      var ratings = subs.map(function(s){ return parseFloat(s.response); }).filter(function(v){ return !isNaN(v); });
+      if (ratings.length) { var sum = ratings.reduce(function(a,b){ return a+b; }, 0);
+        agg = 'Rating: avg ' + (sum/ratings.length).toFixed(1) + '/10 from ' + ratings.length; }
+    } else {
+      agg = 'Responses (' + subs.length + '): ' + subs.map(function(s){ return s.response; }).filter(Boolean).slice(0,15).join(' | ');
+    }
+  }
+
+  var system = 'You are the AI director of a live interactive presentation on: ' + topic + '. ' +
+    'Respond ONLY with JSON: {"layout":"hero"|"split-text"|"chart-bar"|"word-cloud","title":"Slide title","subtitle":"Optional",' +
+    '"content":{"hero_text":"","bullets":[],"chartData":[{"label":"A","value":40}],"words":[{"text":"word","weight":10}],' +
+    '"insight":"One key takeaway","next_prompt":"Short audience question"}}. ' +
+    'For word-cloud, include 1-2 bullets. For chart-bar, use raw counts. ' +
+    'Next prompt: short question, no examples in parentheses. Vary layouts.';
+
+  var user = 'TOPIC: ' + topic + '\n\n' + histStr + '\n\n' +
+    'CURRENT AUDIENCE PROMPT: ' + (pl.question || 'None') + '\n' +
+    'AUDIENCE RESPONSES: ' + (agg || 'No input yet. Generate an introductory slide.') + '\n\n' +
+    layoutDirective(pl.type) + '\nGenerate the NEXT slide. Build on the narrative. Do not repeat.';
+
+  return [system, user];
+}
+
+// ======================== INIT ========================
+(function init() {
+  if (STATE.topic) document.getElementById('topicInput').value = STATE.topic;
+  if (STATE.currentSlide) renderSlide(STATE.currentSlide);
+  updateHistory();
+  updateSubCount();
+})();
+
+// ======================== KEYBOARD SHORTCUTS ========================
+document.addEventListener('keydown', function(e){
+  // Ctrl+G or Ctrl+Enter: Generate
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'g' || e.key === 'G' || e.key === 'Enter')) {
+    e.preventDefault();
+    generateSlide();
+    return;
+  }
+  // Enter in prompt question field: Push prompt
+  if (e.key === 'Enter' && document.activeElement === document.getElementById('promptQ')) {
+    e.preventDefault();
+    pushPrompt();
+    return;
+  }
+  // 1-4: switch prompt type
+  if (!e.ctrlKey && !e.metaKey && document.activeElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+    if (e.key === '1') setType('poll');
+    if (e.key === '2') setType('wordcloud');
+    if (e.key === '3') setType('rating');
+    if (e.key === '4') setType('question');
+  }
+});
+
+// ======================== SLIDE COUNTER ========================
+function addSlideCounter(card) {
+  var counter = document.createElement('div');
+  counter.style.cssText = 'text-align:right;font-size:11px;color:var(--text3);margin-bottom:12px';
+  counter.textContent = 'Slide ' + STATE.slideHistory.length + ' of ' + (STATE.slideHistory.length || 1);
+  card.insertBefore(counter, card.firstChild);
+}
+// Wrap renderSlide to add counter
+var _originalRenderSlide = renderSlide;
+renderSlide = function(slide) {
+  _originalRenderSlide(slide);
+  var card = document.querySelector('.slide-card');
+  if (card) addSlideCounter(card);
+};
+
+// ======================== PROFANITY FILTER ========================
+var PROFANITY_LIST = [
+  'fuck','shit','ass','bitch','damn','crap','dick','piss','bastard','slut',
+  'whore','nigger','faggot','retard','cunt','cock','twat','wank','bollocks','tosser',
+  'douche','jackass','dumbass','dipshit','bullshit','motherfucker','arse','arsehole',
+  'prick','bugger','sod','git','minge','bellend','knob','pillock','plonker','berk',
+  'numpty','wazzock','lummox','nincompoop','nitwit','dolt','imple','dunce','oaf','clod'
+];
+function checkProfanity(text) {
+  var lower = text.toLowerCase();
+  for (var i = 0; i < PROFANITY_LIST.length; i++) {
+    if (lower.indexOf(PROFANITY_LIST[i]) >= 0) return true;
+  }
+  return false;
+}
+// Filter submissions as they come in (via pollState)
+var _originalPollState = pollState;
+pollState = function() {
+  _originalPollState();
+  // Auto-redact submissions with profanity
+  var subs = STATE.submissions || [];
+  subs.forEach(function(s, i){
+    if (checkProfanity(s.response) && !REDACTED[i]) {
+      REDACTED[i] = true;
+      updateModeration();
+    }
+  });
+};
+
+// ======================== QR / SHARE INFO ========================
+function showShareInfo() {
+  var url = window.location.href.replace('speaker.html', 'audience.html');
+  var msg = 'Audience page:\n' + url + '\n\nOpen this URL in another tab or on mobile devices.\n(Copy the URL and share via QR code generator)';
+  alert(msg);
+}
+
+// Add share button event (bind after DOM ready)
+document.addEventListener('DOMContentLoaded', function(){
+  var shareBtn = document.getElementById('shareBtn');
+  if (shareBtn) shareBtn.onclick = showShareInfo;
+});
+</script>
+</body>
+</html>
