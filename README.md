@@ -81,9 +81,6 @@ Speaker (speaker.html)          Audience (audience.html)
 - **Log-scale word cloud**: Minority responses stay visible at 14px minimum
 - **Percentage chart labels**: Raw counts + computed percentages
 
-## Credits
+## License
 
-- **Author**: Peter (lesterppo)
-- **Collaborator**: Hermes Agent
-- **Review**: Gemini Pro (3-round architecture review, June 2026)
-- **License**: MIT
+MIT
